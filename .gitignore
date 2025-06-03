@@ -1,1 +1,24 @@
-/env
+# Environment
+venv/
+env/
+ENV/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.so
+
+
+# Django database/ Logs
+*.log
+db.sqlite3
+media/
+
+# IDEs / Editor
+.vscode/
+.idea/
+staticfiles/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
