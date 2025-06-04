@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
 
@@ -10,8 +11,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['fullname', 'email', 'password', 'repeated_password']
         extra_kwargs = {
-            'password': {'write_only': True},
             'email': {'required': True},
+            'password': {'write_only': True},
         }
 
 
@@ -46,3 +47,21 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(raw_password)
         account.save()
         return account
+    
+
+class CustomLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True, write_only=True)
+    password = serializers.CharField(required=True, write_only=True)
+    
+    def validate(self, attrs):
+        email = attrs.get("email", "").strip()
+        password = attrs.get("password", "")
+        if not email or not password:
+            raise serializers.ValidationError("E-mail and password are required.")
+        user = authenticate(username=email, password=password)
+        if not user:
+            raise serializers.ValidationError("Invalid e-mail or password.")
+        if not user.is_active:
+            raise serializers.ValidationError("This account is not active.")
+        attrs["user"] = user
+        return attrs
