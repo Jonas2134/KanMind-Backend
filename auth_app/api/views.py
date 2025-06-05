@@ -63,7 +63,6 @@ class CustomLoginView(APIView):
 
 
 class EmailCheckView(APIView):
-    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         serializer = EmailQuerySerializer(data=request.query_params)
