@@ -65,3 +65,7 @@ class CustomLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("This account is not active.")
         attrs["user"] = user
         return attrs
+    
+
+class EmailQuerySerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)

@@ -1,10 +1,13 @@
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
+from django.http import Http404
 
-from .serializers import RegistrationSerializer, CustomLoginSerializer
+from .serializers import RegistrationSerializer, CustomLoginSerializer, EmailQuerySerializer
 
 
 class RegistrationView(APIView):
@@ -57,3 +60,35 @@ class CustomLoginView(APIView):
                 {"detail": "Internal server error. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class EmailCheckView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        serializer = EmailQuerySerializer(data=request.query_params)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        email = serializer.validated_data["email"]
+
+        try:
+            user = get_object_or_404(User, email=email)
+        except Http404:
+            return Response(
+                {"detail": "Email not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as exc:
+            return Response(
+                {"detail": "Internal server error. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        response_data = {
+            "id": user.id,
+            "email": user.email,
+            "fullname": f"{user.first_name.strip().capitalize()} {user.last_name.strip().capitalize()}",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
