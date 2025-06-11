@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class KanbanAppConfig(AppConfig):
+class BoardsAppConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'kanban_app'
+    name = 'boards_app'
