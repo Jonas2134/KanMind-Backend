@@ -1,18 +1,16 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from boards_app.models import Board
 
 
-User = get_user_model()
-
-class BoardSerializer(serializers.ModelSerializer):
-    members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True, write_only=True)
-    member_count = serializers.IntegerField(read_only=True)
-    ticket_count = serializers.IntegerField(read_only=True)
-    tasks_to_do_count = serializers.IntegerField(read_only=True)
-    tasks_high_prio_count = serializers.IntegerField(read_only=True)
-    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+class BoardListSerializer(serializers.ModelSerializer):
+    members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True, write_only=True, required=False)
+    owner_id = serializers.PrimaryKeyRelatedField(read_only=True)
+    member_count = serializers.SerializerMethodField()
+    ticket_count = serializers.SerializerMethodField()
+    tasks_to_do_count = serializers.SerializerMethodField()
+    tasks_high_prio_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
@@ -26,9 +24,15 @@ class BoardSerializer(serializers.ModelSerializer):
             'tasks_high_prio_count',
             'owner_id',
         ]
+
+    def get_member_count(self, obj):
+        return obj.members.count()
     
-    def create(self, validated_data):
-        members = validated_data.pop('members', [])
-        board = Board.objects.create(owner=self.context['request'].user, **validated_data)
-        board.members.set(members)
-        return board
+    def get_ticket_count(self, obj):
+        return obj.tickets.count()
+    
+    def get_tasks_to_do_count(self, obj):
+        return obj.tickets.filter(status='to_do').count()
+    
+    def get_tasks_high_prio_count(self, obj):
+        return obj.tickets.filter(priority='high').count()

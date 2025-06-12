@@ -1,22 +1,22 @@
-from rest_framework import generics, permissions
-from django.db.models import Count, Q
+from rest_framework import generics
+from django.db import models
 
 from boards_app.models import Board
-from .serializers import BoardSerializer
+from .serializers import BoardListSerializer
 
 class BoardListView(generics.ListCreateAPIView):
-    serializer_class = BoardSerializer
-
+    serializer_class = BoardListSerializer
+    
     def get_queryset(self):
         user = self.request.user
-        qs = Board.objects.filter(members=user).annotate(
-            member_count=Count('members', distinct=True),
-            ticket_count=Count('tickets', distinct=True),
-            tasks_to_do_count=Count('tickets', filter=Q(tickets__status='todo')),
-            tasks_high_prio_count=Count('tickets', filter=Q(tickets__priority='high')),
-        )
+        qs = Board.objects.filter(
+            models.Q(owner_id=user) | models.Q(members=user)
+        ).distinct()
         return qs
     
     def perform_create(self, serializer):
-        serializer.save()
+        board = serializer.save(owner=self.request.user)
+        if not board.members.filter(id=self.request.user.id).exists():
+            board.members.add(self.request.user)
+        
     
