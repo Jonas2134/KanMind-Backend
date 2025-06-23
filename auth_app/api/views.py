@@ -17,7 +17,10 @@ class RegistrationView(APIView):
         serializer = RegistrationSerializer(data=request.data)
         
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:        
             new_user = serializer.save()
@@ -28,8 +31,11 @@ class RegistrationView(APIView):
                 "email": new_user.email,
                 "user_id": new_user.id,
             }
-            return Response(response_data, status=status.HTTP_201_CREATED)
-        except Exception as exc:
+            return Response(
+                response_data,
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as err:
             return Response(
                 {"detail": "Internal server error. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -43,7 +49,10 @@ class CustomLoginView(APIView):
         serializer = CustomLoginSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:
             user = serializer.validated_data['user']
@@ -54,8 +63,11 @@ class CustomLoginView(APIView):
                 "email": user.email,
                 "user_id": user.id,
             }
-            return Response(response_data, status=status.HTTP_201_CREATED)
-        except Exception as exc:
+            return Response(
+                response_data,
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as err:
             return Response(
                 {"detail": "Internal server error. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -69,7 +81,10 @@ class EmailCheckView(APIView):
         serializer = EmailQuerySerializer(data=request.query_params)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         email = serializer.validated_data["email"]
 
@@ -80,7 +95,7 @@ class EmailCheckView(APIView):
                 {"detail": "Email not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
-        except Exception as exc:
+        except Exception as err:
             return Response(
                 {"detail": "Internal server error. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -91,4 +106,7 @@ class EmailCheckView(APIView):
             "email": user.email,
             "fullname": f"{user.first_name.strip().capitalize()} {user.last_name.strip().capitalize()}",
         }
-        return Response(response_data, status=status.HTTP_200_OK)
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK
+        )

@@ -21,19 +21,56 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
     
     def list(self, request, *args, **kwargs):
-        qs = self.get_queryset().annotate(
-            member_count=Count('members', distinct=True),
-            ticket_count=Count('tickets', distinct=True),
-            tasks_to_do_count=Count('tickets', filter=Q(tickets__status='todo')),
-            tasks_high_prio_count=Count('tickets', filter=Q(tickets__priority='high')),
-        )
-        serializer = self.get_serializer(qs, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            qs = self.get_queryset().annotate(
+                member_count=Count('members', distinct=True),
+                ticket_count=Count('tickets', distinct=True),
+                tasks_to_do_count=Count('tickets', filter=Q(tickets__status='todo')),
+                tasks_high_prio_count=Count('tickets', filter=Q(tickets__priority='high')),
+            )
+            serializer = self.get_serializer(qs, many=True)
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as err:
+           return Response(
+                {'detail': 'Internal server error.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            ) 
 
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        board = serializer.save()
-        output_serializer = BoardSerializer(board, context={'request': request})
-        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            board = serializer.save()
+        except Exception as err:
+            return Response(
+                {'detail': 'Internal server error.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        try:
+            qs = Board.objects.filter(pk=board.pk).annotate(
+                member_count=Count('members', distinct=True),
+                ticket_count=Count('tickets', distinct=True),
+                tasks_to_do_count=Count('tickets', filter=Q(tickets__status='todo')),
+                tasks_high_prio_count=Count('tickets', filter=Q(tickets__priority='high')),
+            ).first()
+            output_serializer = BoardListSerializer(qs, context={'request': request})
+            return Response(
+                output_serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as err:
+            return Response(
+                {'detail': 'Internal server error.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
