@@ -29,6 +29,13 @@ class BoardCreateSerializer(serializers.ModelSerializer):
         model = Board
         fields = ['id', 'title', 'members']
         read_only_fields = ['id']
+
+    def validate_members(self, value):
+        users = User.objects.filter(id__in=value).values_list('id', flat=True)
+        missing = set(value) - set(users)
+        if missing:
+            raise serializers.ValidationError(f"The following members do not exist: {sorted(missing)}")
+        return value
     
     def create(self, validated_data):
         members_ids = validated_data.pop('members', [])
