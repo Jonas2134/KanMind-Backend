@@ -11,15 +11,16 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Board.objects.filter(Q(owner=user) | Q(members=user)).distinct()
-    
+        allowed_ids = Board.objects.filter(Q(owner=user) | Q(members=user)).values_list('id', flat=True)
+        return Board.objects.filter(id__in=allowed_ids).distinct()
+
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return BoardCreateSerializer
         return BoardListSerializer
 
-    
+
     def list(self, request, *args, **kwargs):
         try:
             qs = self.get_queryset().annotate(
@@ -37,9 +38,9 @@ class BoardListCreateView(generics.ListCreateAPIView):
            return Response(
                 {'detail': 'Internal server error.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) 
+            )
 
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
 
@@ -58,7 +59,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
             )
 
         try:
-            qs = Board.objects.filter(pk=board.pk).annotate(
+            qs = Board.objects.filter(id__in=[board.pk]).annotate(
                 member_count=Count('members', distinct=True),
                 ticket_count=Count('tickets', distinct=True),
                 tasks_to_do_count=Count('tickets', filter=Q(tickets__status='todo')),
