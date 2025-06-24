@@ -84,6 +84,20 @@ class BoardDetailSerializer(serializers.ModelSerializer):
         ]
 
 
+class BoardDetailAfterUpdateSerializer(serializers.ModelSerializer):
+    owner_data = UserNestedSerializer(source='owner', read_only=True)
+    members_data = UserNestedSerializer(source='members', many=True, read_only=True)
+
+    class Meta:
+        model = Board
+        fields = [
+            'id',
+            'title',
+            'owner_data',
+            'members_data',
+        ]
+
+
 class BoardUpdateSerializer(serializers.ModelSerializer):
     members = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     title = serializers.CharField(required=False)

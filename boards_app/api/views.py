@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 
 from boards_app.models import Board
-from .serializers import BoardListSerializer, BoardCreateSerializer, BoardDetailSerializer, BoardUpdateSerializer
+from .serializers import BoardListSerializer, BoardCreateSerializer, BoardDetailSerializer, BoardDetailAfterUpdateSerializer, BoardUpdateSerializer
 
 class BoardListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -131,7 +131,7 @@ class BoardDetailPatchDeleteView(generics.RetrieveUpdateDestroyAPIView):
             )
 
         try:
-            detail_serializer = BoardDetailSerializer(board, context={'request': request})
+            detail_serializer = BoardDetailAfterUpdateSerializer(board, context={'request': request})
             return Response(
                 detail_serializer.data,
                 status=status.HTTP_200_OK
