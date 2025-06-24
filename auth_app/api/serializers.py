@@ -69,3 +69,20 @@ class CustomLoginSerializer(serializers.Serializer):
 
 class EmailQuerySerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
+
+
+class UserNestedSerializer(serializers.ModelSerializer):
+    fullname = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'fullname']
+
+    def get_fullname(self, obj):
+        full = obj.get_full_name() if hasattr(obj, 'get_full_name') else None
+        if full:
+            return full
+        first = getattr(obj, 'first_name', '') or ''
+        last = getattr(obj, 'last_name', '') or ''
+        name = f"{first} {last}".strip()
+        return name or obj.email

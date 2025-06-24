@@ -23,9 +23,16 @@ class Ticket(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to-do')
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-    assignee = models.ForeignKey(User, related_name='assignee_user', on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    assignee = models.ForeignKey(User, related_name='assigned_tickets', on_delete=models.SET_NULL, null=True, blank=True)
+    reviewer = models.ForeignKey(User, related_name='review_tickets', on_delete=models.SET_NULL, null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return f"Task {self.id} on Board {self.board_id}"
+
+
+class Comment(models.Model):
+    author = models.ForeignKey(User, related_name='author_comment', on_delete=models.CASCADE)
+    task = models.ForeignKey(Ticket, related_name='comment', on_delete=models.CASCADE)
+    content = models.TextField(max_length=255)
+    created_at = models.DateField(null=True, blank=True)
