@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 
 from boards_app.models import Board
+from ticket_app.models import Ticket
 from .serializers import TicketSerializer, TicketCreateSerializer
 
 class TicketPostView(generics.CreateAPIView):
@@ -64,5 +65,45 @@ class TicketPostView(generics.CreateAPIView):
         except Exception:
             return Response(
                 {'detail': 'Internal server error when returning the ticket.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TaskAssigneeView(generics.ListAPIView):
+    serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Ticket.objects.filter(assignee=user)
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            qs = self.get_queryset()
+            serializer = self.get_serializer(qs, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception:
+            return Response(
+                {'detail': 'Internal server error.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class TaskReviewerView(generics.ListAPIView):
+    serializer_class = TicketSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Ticket.objects.filter(reviewer=user)
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            qs = self.get_queryset()
+            serializer = self.get_serializer(qs, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception:
+            return Response(
+                {'detail': 'Internal server error.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
