@@ -21,8 +21,8 @@ class Ticket(models.Model):
     board = models.ForeignKey(Board, related_name='tickets', on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to-do')
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES)
     assignee = models.ForeignKey(User, related_name='assigned_tickets', on_delete=models.SET_NULL, null=True, blank=True)
     reviewer = models.ForeignKey(User, related_name='review_tickets', on_delete=models.SET_NULL, null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
@@ -33,6 +33,6 @@ class Ticket(models.Model):
 
 class Comment(models.Model):
     author = models.ForeignKey(User, related_name='author_comment', on_delete=models.CASCADE)
-    task = models.ForeignKey(Ticket, related_name='comment', on_delete=models.CASCADE)
+    task = models.ForeignKey(Ticket, related_name='comments', on_delete=models.CASCADE)
     content = models.TextField(max_length=255)
     created_at = models.DateField(null=True, blank=True)
