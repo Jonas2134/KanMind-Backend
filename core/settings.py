@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'auth_app',
     'boards_app',
     'ticket_app',
+    'comments_app',
 ]
 
 MIDDLEWARE = [
