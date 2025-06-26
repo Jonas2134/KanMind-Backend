@@ -61,3 +61,17 @@ class TicketCreateSerializer(TicketBaseSerializer, TicketWriteUsersMixin, BoardI
         model = Ticket
         fields = TicketBaseSerializer.Meta.fields + ['assignee_id', 'reviewer_id', 'board']
         read_only_fields = TicketBaseSerializer.Meta.read_only_fields
+
+
+class TicketPatchSerializer(TicketBaseSerializer, TicketWriteUsersMixin):
+    class Meta:
+        model = Ticket
+        fields = TicketBaseSerializer.Meta.fields + ['assignee_id', 'reviewer_id']
+        read_only_fields = TicketBaseSerializer.Meta.read_only_fields
+
+
+class TicketPatchSuccessSerializer(TicketBaseSerializer, TicketReadUsersMixin, BoardIdMixin):
+    class Meta(TicketBaseSerializer.Meta):
+        model = Ticket
+        fields = TicketBaseSerializer.Meta.fields + ['assignee', 'reviewer', 'board']
+        read_only_fields = TicketBaseSerializer.Meta.read_only_fields + ['assignee', 'reviewer']
