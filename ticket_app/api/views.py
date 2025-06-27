@@ -130,7 +130,6 @@ class TicketPatchDeleteView(
     def patch(self, request, *args, **kwargs):
         ticket = self.get_object()
         board = ticket.board
-        user = request.user
         data = request.data
 
         assignee_id = data.get('assignee_id')
