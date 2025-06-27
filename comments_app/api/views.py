@@ -1,4 +1,4 @@
-from rest_framework import generics, status, mixins
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
@@ -6,21 +6,13 @@ from rest_framework.exceptions import PermissionDenied
 from django.http import Http404
 
 from .serializers import CommentBaseSerializer
+from .mixins import TaskAccessMixin
 from ticket_app.models import Ticket
 from comments_app.models import Comment
 
-class CommentListCreateView(generics.ListCreateAPIView):
+class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
     serializer_class = CommentBaseSerializer
     permission_classes = [IsAuthenticated]
-
-    def get_task(self):
-        task_id = self.kwargs.get('pk')
-        task = get_object_or_404(Ticket, pk=task_id)
-        board = task.board
-        user = self.request.user
-        if not (board.owner_id == user.id or board.members.filter(id=user.id).exists()):
-            raise PermissionDenied("You must be a member of the board to see the comments.")
-        return task
     
     def get_queryset(self):
         task = self.get_task()
@@ -78,3 +70,31 @@ class CommentListCreateView(generics.ListCreateAPIView):
         comment = serializer.instance
         output  = CommentBaseSerializer(comment, context={'request': request})
         return Response(output.data, status=status.HTTP_201_CREATED)
+    
+
+class CommentDestroyView(generics.DestroyAPIView, TaskAccessMixin):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            task = self.get_task()
+        except Http404:
+            return Response({'detail': 'Task not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except PermissionDenied as e:
+            return Response({'detail': str(e.detail)}, status=status.HTTP_403_FORBIDDEN)
+
+        comment_id = self.kwargs.get('comment_id')
+
+        try:
+            comment = Comment.objects.get(pk=comment_id, task=task)
+        except Comment.DoesNotExist:
+            return Response({'detail': 'Comment not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            comment.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception:
+            return Response(
+                {'detail': 'Internal server error when deleting comment.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
