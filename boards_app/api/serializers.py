@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from boards_app.models import Board
 from ticket_app.models import Ticket
 from ticket_app.api.serializers import TicketBaseSerializer
+from ticket_app.api.serializer_mixins import TicketReadUsersMixin, CommentCountMixin
 from auth_app.api.serializers import UserNestedSerializer
 
 
@@ -21,6 +22,43 @@ class BoardListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'owner_id',
             'member_count', 'ticket_count', 'tasks_to_do_count', 'tasks_high_prio_count',
+        ]
+
+
+class TicketNestedSerializer(TicketBaseSerializer, TicketReadUsersMixin, CommentCountMixin):
+    class Meta(TicketBaseSerializer.Meta):
+        model = Ticket
+        fields = TicketBaseSerializer.Meta.fields + ['assignee', 'reviewer', 'comments_count']
+        read_only_fields = TicketBaseSerializer.Meta.read_only_fields + ['assignee', 'reviewer']
+
+
+class BoardDetailSerializer(serializers.ModelSerializer):
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+    members = UserNestedSerializer(many=True, read_only=True)
+    tasks = TicketNestedSerializer(many=True, read_only=True, source='tickets')
+
+    class Meta:
+        model = Board
+        fields = [
+            'id',
+            'title',
+            'owner_id',
+            'members',
+            'tasks',
+        ]
+
+
+class BoardDetailAfterUpdateSerializer(serializers.ModelSerializer):
+    owner_data = UserNestedSerializer(source='owner', read_only=True)
+    members_data = UserNestedSerializer(source='members', many=True, read_only=True)
+
+    class Meta:
+        model = Board
+        fields = [
+            'id',
+            'title',
+            'owner_data',
+            'members_data',
         ]
 
 
@@ -59,43 +97,6 @@ class BoardCreateSerializer(serializers.ModelSerializer):
             board.members.set(members_ids)
 
         return board
-
-
-class TicketNestedSerializer(TicketBaseSerializer):
-    class Meta(TicketBaseSerializer.Meta):
-        model = Ticket
-        fields = TicketBaseSerializer.Meta.fields
-        read_only_fields = TicketBaseSerializer.Meta.read_only_fields
-
-
-class BoardDetailSerializer(serializers.ModelSerializer):
-    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
-    members = UserNestedSerializer(many=True, read_only=True)
-    tasks = TicketNestedSerializer(many=True, read_only=True, source='tickets')
-
-    class Meta:
-        model = Board
-        fields = [
-            'id',
-            'title',
-            'owner_id',
-            'members',
-            'tasks',
-        ]
-
-
-class BoardDetailAfterUpdateSerializer(serializers.ModelSerializer):
-    owner_data = UserNestedSerializer(source='owner', read_only=True)
-    members_data = UserNestedSerializer(source='members', many=True, read_only=True)
-
-    class Meta:
-        model = Board
-        fields = [
-            'id',
-            'title',
-            'owner_data',
-            'members_data',
-        ]
 
 
 class BoardUpdateSerializer(serializers.ModelSerializer):
