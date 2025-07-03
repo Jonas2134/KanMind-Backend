@@ -1,8 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
-from django.http import Http404
+from django.shortcuts import get_object_or_404
 
 from .serializers import CommentBaseSerializer
 from .mixins import TaskAccessMixin
@@ -12,7 +11,7 @@ from comments_app.models import Comment
 class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
     serializer_class = CommentBaseSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_queryset(self):
         task = self.get_task()
         return Comment.objects.filter(task=task).order_by('created_at')
@@ -41,26 +40,10 @@ class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
 class CommentDestroyView(generics.DestroyAPIView, TaskAccessMixin):
     permission_classes = [IsAuthenticated]
 
+    @handle_task_exceptions('deleting')
     def delete(self, request, *args, **kwargs):
-        try:
-            task = self.get_task()
-        except Http404:
-            return Response({'detail': 'Task not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except PermissionDenied as e:
-            return Response({'detail': str(e.detail)}, status=status.HTTP_403_FORBIDDEN)
-
+        task = self.get_task()
         comment_id = self.kwargs.get('comment_id')
-
-        try:
-            comment = Comment.objects.get(pk=comment_id, task=task)
-        except Comment.DoesNotExist:
-            return Response({'detail': 'Comment not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            comment.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception:
-            return Response(
-                {'detail': 'Internal server error when deleting comment.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        comment = get_object_or_404(Comment, pk=comment_id, task=task)
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
