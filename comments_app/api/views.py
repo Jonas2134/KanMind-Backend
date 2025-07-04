@@ -1,11 +1,11 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import NotFound
 
 from .serializers import CommentBaseSerializer
 from .mixins import TaskAccessMixin
-from .decorators import handle_task_exceptions
+from core.decorators import handle_exceptions
 from comments_app.models import Comment
 
 class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
@@ -16,7 +16,7 @@ class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
         task = self.get_task()
         return Comment.objects.filter(task=task).order_by('created_at')
 
-    @handle_task_exceptions('retrieving')
+    @handle_exceptions(action='retrieving comments')
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
         serializer = self.get_serializer(qs, many=True)
@@ -26,7 +26,7 @@ class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
         task = self.get_task()
         serializer.save(author=self.request.user, task=task)
 
-    @handle_task_exceptions('creating')
+    @handle_exceptions(action='creating comment')
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
@@ -40,10 +40,13 @@ class CommentListCreateView(generics.ListCreateAPIView, TaskAccessMixin):
 class CommentDestroyView(generics.DestroyAPIView, TaskAccessMixin):
     permission_classes = [IsAuthenticated]
 
-    @handle_task_exceptions('deleting')
+    @handle_exceptions(action='deleting comment')
     def delete(self, request, *args, **kwargs):
         task = self.get_task()
-        comment_id = self.kwargs.get('comment_id')
-        comment = get_object_or_404(Comment, pk=comment_id, task=task)
+        try:
+            comment_id = self.kwargs.get('comment_id')
+            comment = Comment.objects.get(pk=comment_id, task=task)
+        except Comment.DoesNotExist:
+            raise NotFound('Comment not found.')
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
