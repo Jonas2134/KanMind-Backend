@@ -79,29 +79,3 @@ class BoardUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = ['title', 'members']
-
-    def validate_members(self, value):
-        request = self.context.get('request')
-        if request is None:
-            raise serializers.ValidationError("Request context is missing.")
-        user = request.user
-
-        users = User.objects.filter(id__in=value).values_list('id', flat=True)
-        missing = set(value) - set(users)
-        if missing:
-            raise serializers.ValidationError(f"The following members do not exist: {sorted(missing)}")
-
-        if user.id in value:
-            raise serializers.ValidationError("You cannot add yourself as a member.")
-        return value
-
-    def update(self, instance, validated_data):
-        title = validated_data.get('title', None)
-        if title is not None:
-            instance.title = title
-            instance.save()
-
-        if 'members' in validated_data:
-            members_ids = validated_data.get('members', [])
-            instance.members.set(members_ids)
-        return instance
