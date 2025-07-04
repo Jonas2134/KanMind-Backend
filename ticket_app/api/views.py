@@ -21,7 +21,7 @@ class TicketPostView(generics.CreateAPIView):
             return Board.objects.get(pk=board_id)
         except Board.DoesNotExist:
             raise NotFound('Board not found.')
-    
+
     def validate_user(self, field: str, message: str):
         user_id = self.request.data.get(field)
         if user_id is not None:
