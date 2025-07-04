@@ -100,22 +100,22 @@ class TicketPatchDeleteView(
             raise PermissionDenied("You must be a member of the board to change or delete this task.")
         return ticket
 
-    def validate_role(self, field: str, message: str):
+    def validate_role(self, board, field: str, message: str):
         user_id = self.request.data.get(field)
         if user_id is not None:
             try:
                 user = User.objects.get(pk=user_id)
             except User.DoesNotExist:
                 raise NotFound(message)
-            board = self.get_ticket().board
             if not (board.owner_id == user.id or board.members.filter(id=user.id).exists()):
                 raise ValidationError({field: message})
 
     @handle_exceptions(action='updating ticket')
     def patch(self, request, *args, **kwargs):
         ticket = self.get_object()
-        self.validate_role('assignee_id', 'Assignee must be owner or member of the board.')
-        self.validate_role('reviewer_id', 'Reviewer must be owner or member of the board.')
+        board = ticket.board
+        self.validate_role(board, 'assignee_id', 'Assignee must be owner or member of the board.')
+        self.validate_role(board, 'reviewer_id', 'Reviewer must be owner or member of the board.')
         serializer = self.get_serializer(ticket, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         updated = serializer.save()
