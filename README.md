@@ -24,11 +24,12 @@
    ```
 2. Create and activate a virtual environment:
     ```bash
-    python3 -m venv venv
     # Linux/macOS
+    python3 -m venv env
     source venv/bin/activate
     # Windows
-    venv\Scripts\activate
+    python -m venv env
+    env\Scripts\activate
     ```
 3. Install dependencies:
     ```bash
