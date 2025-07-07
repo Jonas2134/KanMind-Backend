@@ -31,7 +31,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         allowed_ids = Board.objects.filter(Q(owner=user) | Q(members=user)).values_list('id', flat=True)
         return Board.objects.filter(id__in=allowed_ids).distinct()
-    
+
     def get_serializer_class(self):
         """
         Select serializer based on HTTP method.
@@ -60,7 +60,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
         """
         Handle POST request to create a board.
 
-        Validates members list and assigns the requesting user as owner.
+        Validates members list and assigns the requesting user as owner *and* as member.
 
         Returns:
             Response: HTTP 201 with serialized board data, or 400 on validation error.
@@ -70,6 +70,8 @@ class BoardListCreateView(generics.ListCreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         self.validate_members(request.data.get('members', []))
         board = serializer.save(owner=request.user)
+        if request.user not in board.members.all():
+            board.members.add(request.user)
         qs = self.annotated_queryset(Board.objects.filter(pk=board.pk)).first()
         output_serializer = BoardListSerializer(qs, context={'request': request})
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
@@ -123,17 +125,6 @@ class BoardDetailPatchDeleteView(generics.RetrieveUpdateDestroyAPIView):
     """
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """
-        Determine accessible boards for the requesting user.
-
-        Returns:
-            QuerySet: Boards owned by or shared with the user.
-        """
-        user = self.request.user
-        allowed_ids = Board.objects.filter(Q(owner=user) | Q(members=user)).values_list('id', flat=True)
-        return Board.objects.filter(id__in=allowed_ids).distinct()
-
     def get_object(self):
         """
         Fetch the Board instance ensuring the user has access.
@@ -146,14 +137,13 @@ class BoardDetailPatchDeleteView(generics.RetrieveUpdateDestroyAPIView):
             Board: The requested board.
         """
         pk = self.kwargs.get('pk')
+        user = self.request.user
         try:
             board = Board.objects.get(pk=pk)
         except Board.DoesNotExist:
             raise NotFound(detail="Board not found.")
-        user = self.request.user
         if not (board.owner_id == user.id or board.members.filter(id=user.id).exists()):
             raise PermissionDenied(detail="You do not have permission to view/modify this board.")
-        self.check_object_permissions(self.request, board)
         return board
 
     def get_serializer_class(self):
@@ -208,7 +198,8 @@ class BoardDetailPatchDeleteView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, board, data):
         """
-        Validate and apply updates to a board instance.
+        Validate and apply updates to a board instance,
+        then ensure the owner is also in the members list.
 
         Args:
             board (Board): The board to update.
@@ -223,7 +214,11 @@ class BoardDetailPatchDeleteView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(board, data=data, partial=True)
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
-        return serializer.save()
+        updadet_board = serializer.save()
+        owner = board.owner.id
+        if owner not in updadet_board.members.all():
+            updadet_board.members.add(owner)
+        return updadet_board
 
     def serialize_detail(self, board):
         """

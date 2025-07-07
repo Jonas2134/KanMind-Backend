@@ -158,14 +158,14 @@ class CustomLoginView(generics.GenericAPIView):
         1. Validate incoming data via serializer.
         2. Authenticate the user credentials.
         3. Return HTTP 400 if authentication fails.
-        4. Generate or retrieve token and return HTTP 201 on success.
+        4. Generate or retrieve token and return HTTP 200 on success.
 
         Args:
             request (Request): DRF request object containing JSON payload.
 
         Returns:
             Response: DRF Response with
-                - HTTP 201 and JSON {token, fullname, email, user_id} on success
+                - HTTP 200 and JSON {token, fullname, email, user_id} on success
                 - HTTP 400 with error detail on failure
         """
         serializer = self.get_serializer(data=request.data)
@@ -204,7 +204,7 @@ class CustomLoginView(generics.GenericAPIView):
             user (User): The authenticated User instance.
 
         Returns:
-            Response: DRF Response with HTTP 201 containing:
+            Response: DRF Response with HTTP 200 containing:
                 - token (str)
                 - fullname (str)
                 - email (str)
@@ -216,7 +216,7 @@ class CustomLoginView(generics.GenericAPIView):
             "fullname": f"{user.first_name} {user.last_name}",
             "email": user.email,
             "user_id": user.id,
-        }, status=status.HTTP_201_CREATED)
+        }, status=status.HTTP_200_OK)
 
 
 class EmailCheckView(generics.GenericAPIView):
