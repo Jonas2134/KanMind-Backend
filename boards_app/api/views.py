@@ -93,8 +93,6 @@ class BoardListCreateView(generics.ListCreateAPIView):
         if missing:
             raise ValidationError({'members':
                 f'The following members do not exist: {sorted(missing)}'})
-        if self.request.user.id in member_ids:
-            raise ValidationError({'members': 'You cannot add yourself as a member.'})
 
     def annotated_queryset(self, qs):
         """
