@@ -2,10 +2,9 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import NotFound
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
-from django.http import Http404
 
 from .serializers import RegistrationSerializer, CustomLoginSerializer, EmailQuerySerializer
 
@@ -266,9 +265,9 @@ class EmailCheckView(generics.GenericAPIView):
             Response: DRF Response with user info or 404 detail.
         """
         try:
-            user = get_object_or_404(User, email=email)
-        except Http404:
-            return Response({"detail": "Email not found."}, status=status.HTTP_404_NOT_FOUND)
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise NotFound(detail="Email not found.")
 
         return Response({
             "id": user.id,

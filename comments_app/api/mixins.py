@@ -1,5 +1,4 @@
-from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, NotFound
 from ticket_app.models import Ticket
 
 class TaskAccessMixin:
@@ -7,29 +6,32 @@ class TaskAccessMixin:
     Mixin to enforce that the requesting user has access to a specific task.
 
     Provides:
-        get_task(): Retrieves the Ticket instance by URL kwargs and verifies board membership.
-
-    Intended for use in views handling task-related operations (e.g., comments).
+        get_task(): Retrieves the Ticket instance by primary key from URL kwargs
+                    and enforces that the requesting user is either the board owner
+                    or one of its members.
     """
     def get_task(self):
         """
         Retrieve the Ticket object specified in URL kwargs and enforce access control.
 
         Steps:
-        1. Extract 'task_id' or 'pk' from self.kwargs.
-        2. Fetch the Ticket via get_object_or_404, raising 404 if not found.
-        3. Verify that the request.user is either the board owner or a board member.
-        4. Raise PermissionDenied if access is not allowed.
+        1. Extract 'task_id' (or 'pk') from self.kwargs.
+        2. Attempt to fetch the Ticket via Ticket.objects.get(); if not found, raise NotFound.
+        3. Check that the request.user is either the board.owner or in board.members.
+        4. If the check fails, raise PermissionDenied.
 
         Returns:
             Ticket: The retrieved and authorized Ticket instance.
 
         Raises:
-            Http404: If no Ticket with the given ID exists.
+            NotFound:         If no Ticket with the given ID exists.
             PermissionDenied: If the user is not the board owner or a member.
         """
-        task_id = self.kwargs.get('task_id') or self.kwargs.get('pk')
-        task = get_object_or_404(Ticket, pk=task_id)
+        try:
+            task_id = self.kwargs.get('task_id') or self.kwargs.get('pk')
+            task = Ticket.objects.get(pk=task_id)
+        except Ticket.DoesNotExist:
+            raise NotFound('Task not found.')
         board = task.board
         user  = self.request.user
         if not (board.owner_id == user.id or board.members.filter(id=user.id).exists()):
